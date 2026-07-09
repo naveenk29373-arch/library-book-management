@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Circulation Desk — Library Management</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;900&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1B2A4A;
+    --ink-light:#2E4270;
+    --cardstock:#EFE7D8;
+    --cardstock-dark:#E2D6BE;
+    --brass:#B08D57;
+    --brass-light:#CBA96D;
+    --rust:#A63D40;
+    --sage:#5F7D5D;
+    --paper:#FBF8F2;
+    --text:#241F16;
+    --text-muted:#736A59;
+    --line:#D8CCB4;
+    --shadow: 0 4px 14px rgba(27,42,74,0.08);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Inter',sans-serif;
+    color:var(--text);
+    background:var(--cardstock);
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(27,42,74,0.05) 1px, transparent 0);
+    background-size: 22px 22px;
+    min-height:100vh;
+  }
+  h1,h2,h3,.display{font-family:'Playfair Display',serif;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  button{font-family:inherit;cursor:pointer;}
+  input,select{font-family:inherit;}
+  ::selection{background:var(--brass-light);color:var(--ink);}
+
+  .app{
+    display:grid;
+    grid-template-columns:230px 1fr;
+    min-height:100vh;
+  }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar{
+    background:var(--ink);
+    color:var(--paper);
+    padding:28px 18px;
+    display:flex;
+    flex-direction:column;
+    position:relative;
+    overflow:hidden;
+  }
+  .sidebar::after{
+    content:"";
+    position:absolute;
+    right:0;top:0;bottom:0;
+    width:6px;
+    background:repeating-linear-gradient(0deg,var(--brass) 0 10px, transparent 10px 20px);
+    opacity:.55;
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:6px;
+  }
+  .brand svg{flex-shrink:0;}
+  .brand-title{font-size:19px;font-weight:700;letter-spacing:.3px;line-height:1.1;}
+  .brand-sub{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    letter-spacing:2px;
+    color:var(--brass-light);
+    text-transform:uppercase;
+    margin:2px 0 26px 0;
+  }
+  nav{display:flex;flex-direction:column;gap:3px;margin-top:6px;}
+  .nav-btn{
+    display:flex;
+    align-items:center;
+    gap:11px;
+    background:transparent;
+    border:none;
+    color:rgba(251,248,242,0.72);
+    text-align:left;
+    padding:10px 12px;
+    border-radius:6px;
+    font-size:14px;
+    font-weight:500;
+    transition:background .15s, color .15s;
+  }
+  .nav-btn svg{opacity:.85;flex-shrink:0;}
+  .nav-btn:hover{background:rgba(251,248,242,0.08);color:var(--paper);}
+  .nav-btn.active{background:var(--brass);color:var(--ink);font-weight:600;}
+  .nav-btn.active svg{opacity:1;}
+
+  .sidebar-foot{
+    margin-top:auto;
+    padding-top:18px;
+    border-top:1px solid rgba(251,248,242,0.14);
+    font-size:11.5px;
+    color:rgba(251,248,242,0.45);
+    line-height:1.5;
+  }
+
+  /* ---------- Main ---------- */
+  main{padding:34px 42px 60px;max-width:1180px;}
+  .page{display:none;}
+  .page.active{display:block;animation:fade .25s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+  .page-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    margin-bottom:26px;
+    flex-wrap:wrap;
+    gap:14px;
+  }
+  .page-head h1{font-size:30px;margin:0 0 4px;color:var(--ink);}
+  .page-head p{margin:0;color:var(--text-muted);font-size:14px;}
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:var(--rust);
+    margin-bottom:6px;
+    display:block;
+  }
+
+  .btn{
+    border:none;
+    border-radius:7px;
+    padding:10px 18px;
+    font-size:13.5px;
+    font-weight:600;
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    transition:transform .1s, box-shadow .15s;
+  }
+  .btn:active{transform:scale(.97);}
+  .btn-primary{background:var(--ink);color:var(--paper);}
+  .btn-primary:hover{background:var(--ink-light);}
+  .btn-brass{background:var(--brass);color:var(--ink);}
+  .btn-brass:hover{background:var(--brass-light);}
+  .btn-ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line);}
+  .btn-ghost:hover{border-color:var(--ink);}
+  .btn-rust{background:var(--rust);color:var(--paper);}
+  .btn-rust:hover{opacity:.9;}
+  .btn-sm{padding:6px 12px;font-size:12.5px;border-radius:6px;}
+  .btn[disabled]{opacity:.45;cursor:not-allowed;}
+
+  /* ---------- Stat cards ---------- */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px;}
+  .stat-card{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:18px 20px;
+    box-shadow:var(--shadow);
+  }
+  .stat-card .num{font-family:'Playfair Display',serif;font-size:32px;font-weight:700;color:var(--ink);line-height:1;}
+  .stat-card .lbl{font-size:12.5px;color:var(--text-muted);margin-top:8px;font-weight:500;}
+  .stat-card.warn .num{color:var(--rust);}
+  .stat-card.good .num{color:var(--sage);}
+
+  .panel{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:12px;
+    box-shadow:var(--shadow);
+    padding:24px 26px;
+    margin-bottom:24px;
+  }
+  .panel h3{margin:0 0 16px;font-size:17px;color:var(--ink);}
+
+  /* ---------- Forms ---------- */
+  .form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px 18px;}
+  .field{display:flex;flex-direction:column;gap:5px;}
+  .field.span2{grid-column:1/-1;}
+  .field label{font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;}
+  .field input, .field select{
+    padding:10px 12px;
+    border:1.5px solid var(--line);
+    border-radius:7px;
+    font-size:14px;
+    background:var(--cardstock);
+    color:var(--text);
+  }
+  .field input:focus, .field select:focus{
+    outline:2px solid var(--brass);
+    outline-offset:1px;
+    border-color:var(--brass);
+  }
+  .isbn-row{display:flex;gap:8px;}
+  .isbn-row input{flex:1;}
+  .hint{font-size:12px;color:var(--text-muted);margin-top:2px;}
+  .lookup-result{
+    display:flex;
+    gap:14px;
+    align-items:center;
+    background:var(--cardstock);
+    border:1px dashed var(--brass);
+    border-radius:8px;
+    padding:12px 14px;
+    margin-top:10px;
+    font-size:13.5px;
+  }
+  .lookup-result img{width:46px;height:64px;object-fit:cover;border-radius:3px;box-shadow:0 2px 6px rgba(0,0,0,.2);}
+
+  /* ---------- Table ---------- */
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{
+    text-align:left;
+    font-size:11px;
+    letter-spacing:.6px;
+    text-transform:uppercase;
+    color:var(--text-muted);
+    padding:0 10px 10px;
+    border-bottom:2px solid var(--ink);
+    font-weight:600;
+  }
+  td{padding:12px 10px;border-bottom:1px solid var(--line);vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  .badge{
+    display:inline-block;
+    padding:3px 9px;
+    border-radius:100px;
+    font-size:11px;
+    font-weight:600;
+    font-family:'IBM Plex Mono',monospace;
+    letter-spacing:.3px;
+  }
+  .badge.avail{background:rgba(95,125,93,0.15);color:var(--sage);}
+  .badge.out{background:rgba(166,61,64,0.13);color:var(--rust);}
+  .badge.due{background:rgba(176,141,87,0.18);color:#8a6a34;}
+
+  .empty{
+    text-align:center;
+    padding:44px 20px;
+    color:var(--text-muted);
+  }
+  .empty .display{font-size:19px;color:var(--ink);margin-bottom:6px;}
+
+  /* ---------- Signature: due-date stamp cards ---------- */
+  .card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:18px;}
+  .stamp-card{
+    background:var(--paper);
+    border:1.5px dashed var(--line);
+    border-radius:4px;
+    padding:16px 16px 14px;
+    position:relative;
+    overflow:hidden;
+  }
+  .stamp-card::before{
+    content:"";
+    position:absolute;
+    left:0;top:0;bottom:0;
+    width:5px;
+    background:var(--ink);
+  }
+  .stamp-card .title{font-family:'Playfair Display',serif;font-weight:700;font-size:15.5px;color:var(--ink);margin:0 0 2px;padding-left:6px;}
+  .stamp-card .author{font-size:12px;color:var(--text-muted);margin:0 0 12px;padding-left:6px;}
+  .stamp-card .row{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:11.5px;padding:3px 0 3px 6px;color:var(--text);border-top:1px dotted var(--line);}
+  .stamp-card .row:first-of-type{border-top:1px solid var(--ink);margin-top:2px;}
+  .stamp-card .row span:last-child{color:var(--text-muted);}
+  .stamp{
+    position:absolute;
+    top:14px;right:-6px;
+    font-family:'IBM Plex Mono',monospace;
+    font-weight:700;
+    font-size:11px;
+    letter-spacing:1.5px;
+    padding:5px 14px 5px 10px;
+    border:2px solid var(--sage);
+    color:var(--sage);
+    transform:rotate(9deg);
+    border-radius:3px;
+    text-transform:uppercase;
+    background:rgba(95,125,93,0.06);
+  }
+  .stamp.overdue{border-color:var(--rust);color:var(--rust);background:rgba(166,61,64,0.06);transform:rotate(-7deg);}
+  .stamp-card .actions{margin-top:12px;padding-left:6px;display:flex;gap:8px;}
+
+  /* ---------- Alerts list ---------- */
+  .alert-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    padding:14px 16px;
+    background:var(--cardstock);
+    border-left:4px solid var(--rust);
+    border-radius:6px;
+    margin-bottom:10px;
+  }
+  .alert-row .who{font-weight:600;font-size:14px;color:var(--ink);}
+  .alert-row .meta{font-size:12.5px;color:var(--text-muted);margin-top:2px;}
+  .alert-row .fine-amt{font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--rust);font-size:15px;}
+
+  .toast{
+    position:fixed;
+    bottom:24px;right:24px;
+    background:var(--ink);
+    color:var(--paper);
+    padding:13px 20px;
+    border-radius:8px;
+    font-size:13.5px;
+    box-shadow:0 8px 24px rgba(0,0,0,.25);
+    transform:translateY(20px);
+    opacity:0;
+    transition:all .25s ease;
+    pointer-events:none;
+    z-index:50;
+    max-width:320px;
+  }
+  .toast.show{transform:translateY(0);opacity:1;}
+
+  .settings-form .field{max-width:340px;}
+
+  @media (max-width:880px){
+    .app{grid-template-columns:1fr;}
+    .sidebar{flex-direction:row;overflow-x:auto;padding:14px;}
+    .sidebar::after{display:none;}
+    .brand,.brand-sub,.sidebar-foot{display:none;}
+    nav{flex-direction:row;}
+    main{padding:22px 18px 50px;}
+    .stats{grid-template-columns:repeat(2,1fr);}
+    .form-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M4 4.5C4 3.7 4.7 3 5.5 3H12v18H5.5c-.8 0-1.5-.7-1.5-1.5v-15Z" fill="#B08D57"/><path d="M12 3h6.5c.8 0 1.5.7 1.5 1.5v15c0 .8-.7 1.5-1.5 1.5H12V3Z" fill="#FBF8F2" opacity=".9"/></svg>
+      <div class="brand-title">The Circulation<br/>Desk</div>
+    </div>
+    <div class="brand-sub">Vol. I — Book Registry</div>
+    <nav>
+      <button class="nav-btn active" data-page="dashboard">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+        Dashboard
+      </button>
+      <button class="nav-btn" data-page="catalog">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
+        Catalog
+      </button>
+      <button class="nav-btn" data-page="circulation">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+        Issue / Return
+      </button>
+      <button class="nav-btn" data-page="fines">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5c0-1.4 1.3-2.5 3-2.5s3 .9 3 2.2c0 2.8-6 1.5-6 4.3 0 1.3 1.3 2.2 3 2.2s3-1.1 3-2.5"/></svg>
+        Fines
+      </button>
+      <button class="nav-btn" data-page="alerts">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+        Overdue Alerts
+      </button>
+      <button class="nav-btn" data-page="settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09A1.65 1.65 0 0 0 15 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.13.31.34.59.6.82.26.24.58.4.92.46H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+        Settings
+      </button>
+    </nav>
+    <div class="sidebar-foot">Ledger stored on this device.<br/>No account, no cloud — just the desk.</div>
+  </aside>
+
+  <main>
+
+    <!-- ================= DASHBOARD ================= -->
+    <section class="page active" id="dashboard">
+      <div class="page-head">
+        <div>
+          <span class="eyebrow">Today's reading</span>
+          <h1>Dashboard</h1>
+          <p id="dashDate"></p>
+        </div>
+        <button class="btn btn-brass" onclick="go('circulation')">＋ Issue a Book</button>
+      </div>
+
+      <div class="stats">
+        <div class="stat-card"><div class="num" id="statTotal">0</div><div class="lbl">Titles in catalog</div></div>
+        <div class="stat-card good"><div class="num" id="statAvail">0</div><div class="lbl">Copies on the shelf</div></div>
+        <div class="stat-card"><div class="num" id="statOut">0</div><div class="lbl">Copies checked out</div></div>
+        <div class="stat-card warn"><div class="num" id="statOverdue">0</div><div class="lbl">Overdue right now</div></div>
+      </div>
+
+      <div class="panel">
+        <h3>Currently checked out</h3>
+        <div id="dashActiveList"></div>
+      </div>
+    </section>
+
+    <!-- ================= CATALOG ================= -->
+    <section class="page" id="catalog">
+      <div class="page-head">
+        <div>
+          <span class="eyebrow">The shelf</span>
+          <h1>Catalog</h1>
+          <p>Add titles by ISBN — the desk looks them up for you.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Add a book</h3>
+        <div class="form-grid">
+          <div class="field span2">
+            <label>ISBN / Barcode</label>
+            <div class="isbn-row">
+              <input type="text" id="isbnInput" placeholder="e.g. 9780141439600" />
+              <button class="btn btn-ghost" onclick="lookupISBN()">Look up</button>
+            </div>
+            <div class="hint">Looks up title, author and cover from Open Library. You can still edit anything below.</div>
+            <div id="lookupResult"></div>
+          </div>
+          <div class="field"><label>Title</label><input type="text" id="bookTitle" placeholder="Pride and Prejudice"/></div>
+          <div class="field"><label>Author</label><input type="text" id="bookAuthor" placeholder="Jane Austen"/></div>
+          <div class="field"><label>Copies to add</label><input type="number" id="bookCopies" min="1" value="1"/></div>
+          <div class="field"><label>Shelf / section</label><input type="text" id="bookShelf" placeholder="Fiction — A"/></div>
+        </div>
+        <div style="margin-top:16px;"><button class="btn btn-primary" onclick="addBook()">Add to catalog</button></div>
+      </div>
+
+      <div class="panel">
+        <h3>All titles</h3>
+        <div id="catalogTableWrap"></div>
+      </div>
+    </section>
+
+    <!-- ================= CIRCULATION ================= -->
+    <section class="page" id="circulation">
+      <div class="page-head">
+        <div>
+          <span class="eyebrow">The desk</span>
+          <h1>Issue &amp; Return</h1>
+          <p>Hand a book across the desk, or check one back in.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Issue a book</h3>
+        <div class="form-grid">
+          <div class="field span2">
+            <label>Book</label>
+            <select id="issueBookSelect"></select>
+          </div>
+          <div class="field"><label>Borrower name</label><input type="text" id="memberName" placeholder="Anita Rao"/></div>
+          <div class="field"><label>Borrower email</label><input type="email" id="memberEmail" placeholder="anita@example.com"/></div>
+          <div class="field"><label>Issue date</label><input type="date" id="issueDate"/></div>
+          <div class="field"><label>Due date</label><input type="date" id="dueDate"/></div>
+        </div>
+        <div style="margin-top:16px;"><button class="btn btn-primary" onclick="issueBook()">Issue book</button></div>
+      </div>
+
+      <div class="panel">
+        <h3>Checked out — the ledger</h3>
+        <div class="card-grid" id="activeCardGrid"></div>
+      </div>
+
+      <div class="panel">
+        <h3>Return history</h3>
+        <div id="historyTableWrap"></div>
+      </div>
+    </section>
+
+    <!-- ================= FINES ================= -->
+    <section class="page" id="fines">
+      <div class="page-head">
+        <div>
+          <span class="eyebrow">The tally</span>
+          <h1>Fines</h1>
+          <p>Calculated automatically at <span id="fineRateLabel" class="mono"></span> per day late.</p>
+        </div>
+      </div>
+
+      <div class="stats" style="grid-template-columns:repeat(3,1fr);">
+        <div class="stat-card warn"><div class="num" id="fineOutstanding">₹0</div><div class="lbl">Outstanding</div></div>
+        <div class="stat-card good"><div class="num" id="finePaid">₹0</div><div class="lbl">Collected</div></div>
+        <div class="stat-card"><div class="num" id="fineCount">0</div><div class="lbl">Fined returns on record</div></div>
+      </div>
+
+      <div class="panel">
+        <h3>Fine ledger</h3>
+        <div id="fineTableWrap"></div>
+      </div>
+    </section>
+
+    <!-- ================= ALERTS ================= -->
+    <section class="page" id="alerts">
+      <div class="page-head">
+        <div>
+          <span class="eyebrow">The overdue drawer</span>
+          <h1>Overdue Alerts</h1>
+          <p>Reminders open in your email app, addressed and ready to send.</p>
+        </div>
+        <button class="btn btn-ghost" onclick="copyOverdueSummary()">Copy overdue summary</button>
+      </div>
+      <div id="alertsList"></div>
+    </section>
+
+    <!-- ================= SETTINGS ================= -->
+    <section class="page" id="settings">
+      <div class="page-head">
+        <div>
+          <span class="eyebrow">Behind the desk</span>
+          <h1>Settings</h1>
+          <p>Rules the desk follows.</p>
+        </div>
+      </div>
+      <div class="panel settings-form">
+        <div class="form-grid">
+          <div class="field"><label>Library name</label><input type="text" id="setLibraryName"/></div>
+          <div class="field"><label>Fine per day overdue (₹)</label><input type="number" id="setFineRate" min="0" step="0.5"/></div>
+          <div class="field"><label>Default loan period (days)</label><input type="number" id="setLoanDays" min="1"/></div>
+        </div>
+        <div style="margin-top:16px;"><button class="btn btn-primary" onclick="saveSettings()">Save settings</button></div>
+      </div>
+      <div class="panel">
+        <h3>Reset</h3>
+        <p class="hint" style="margin-bottom:12px;">This clears every book, borrower and fine record from this device.</p>
+        <button class="btn btn-rust" onclick="resetAll()">Clear all records</button>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===================== STATE ===================== */
+let books = [];      // {id, isbn, title, author, cover, copies, available, shelf}
+let issues = [];      // {id, bookId, title, author, memberName, memberEmail, issueDate, dueDate, returnDate, fine, finePaid}
+let settings = { libraryName: "Riverside Community Library", fineRate: 5, loanDays: 14 };
+
+const uid = () => Math.random().toString(36).slice(2,10);
+const todayISO = () => new Date().toISOString().slice(0,10);
+const addDays = (iso, n) => { const d = new Date(iso); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); };
+const daysBetween = (a,b) => Math.round((new Date(b) - new Date(a)) / 86400000);
+const fmtDate = iso => new Date(iso+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+const money = n => '₹' + Number(n).toFixed(2);
+
+/* ===================== STORAGE ===================== */
+async function loadState(){
+  try{
+    const b = await window.storage.get('library-books');
+    books = b ? JSON.parse(b.value) : [];
+  }catch(e){ books = []; }
+  try{
+    const i = await window.storage.get('library-issues');
+    issues = i ? JSON.parse(i.value) : [];
+  }catch(e){ issues = []; }
+  try{
+    const s = await window.storage.get('library-settings');
+    settings = s ? JSON.parse(s.value) : settings;
+  }catch(e){ /* keep defaults */ }
+
+  if(books.length === 0 && issues.length === 0){
+    seedDemoData();
+  }
+}
+async function saveBooks(){ try{ await window.storage.set('library-books', JSON.stringify(books)); }catch(e){ toast('Could not save catalog changes.'); } }
+async function saveIssues(){ try{ await window.storage.set('library-issues', JSON.stringify(issues)); }catch(e){ toast('Could not save circulation changes.'); } }
+async function saveSettingsState(){ try{ await window.storage.set('library-settings', JSON.stringify(settings)); }catch(e){ toast('Could not save settings.'); } }
+
+function seedDemoData(){
+  books = [
+    {id:uid(), isbn:'9780141439600', title:'Pride and Prejudice', author:'Jane Austen', cover:'', copies:2, available:1, shelf:'Fiction — A'},
+    {id:uid(), isbn:'9780451524935', title:'1984', author:'George Orwell', cover:'', copies:3, available:3, shelf:'Fiction — O'},
+    {id:uid(), isbn:'9788172234981', title:'The God of Small Things', author:'Arundhati Roy', cover:'', copies:1, available:0, shelf:'Fiction — R'},
+  ];
+  const overdueMember = { name:'Ravi Kumar', email:'ravi.kumar@example.com' };
+  issues = [
+    {id:uid(), bookId:books[0].id, title:books[0].title, author:books[0].author, memberName:'Priya Shah', memberEmail:'priya.shah@example.com', issueDate: addDays(todayISO(),-5), dueDate: addDays(todayISO(),9), returnDate:null, fine:0, finePaid:false},
+    {id:uid(), bookId:books[2].id, title:books[2].title, author:books[2].author, memberName: overdueMember.name, memberEmail: overdueMember.email, issueDate: addDays(todayISO(),-20), dueDate: addDays(todayISO(),-6), returnDate:null, fine:0, finePaid:false},
+  ];
+}
+
+/* ===================== NAV ===================== */
+function go(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(page).classList.add('active');
+  document.querySelector(`.nav-btn[data-page="${page}"]`).classList.add('active');
+  renderAll();
+}
+document.querySelectorAll('.nav-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>go(btn.dataset.page));
+});
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(()=>t.classList.remove('show'), 3200);
+}
+
+/* ===================== ISBN LOOKUP ===================== */
+async function lookupISBN(){
+  const raw = document.getElementById('isbnInput').value.trim().replace(/[-\s]/g,'');
+  const resultBox = document.getElementById('lookupResult');
+  if(!raw){ toast('Enter an ISBN or barcode first.'); return; }
+  resultBox.innerHTML = `<div class="lookup-result">Searching Open Library for ${raw}…</div>`;
+  try{
+    const res = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${raw}&format=json&jscmd=data`);
+    const data = await res.json();
+    const rec = data[`ISBN:${raw}`];
+    if(!rec){
+      resultBox.innerHTML = `<div class="lookup-result">No match found for that ISBN. You can still fill the fields in by hand.</div>`;
+      return;
+    }
+    const title = rec.title || '';
+    const author = (rec.authors && rec.authors.map(a=>a.name).join(', ')) || '';
+    const cover = rec.cover ? (rec.cover.small || rec.cover.medium) : '';
+    document.getElementById('bookTitle').value = title;
+    document.getElementById('bookAuthor').value = author;
+    resultBox.innerHTML = `<div class="lookup-result">
+      ${cover ? `<img src="${cover}" alt="cover"/>` : ''}
+      <div><strong>${title || 'Untitled'}</strong><br/><span style="color:var(--text-muted)">${author || 'Unknown author'}</span></div>
+    </div>`;
+  }catch(e){
+    resultBox.innerHTML = `<div class="lookup-result">Couldn't reach Open Library right now. Fill the fields in by hand instead.</div>`;
+  }
+}
+
+/* ===================== CATALOG ===================== */
+async function addBook(){
+  const isbn = document.getElementById('isbnInput').value.trim();
+  const title = document.getElementById('bookTitle').value.trim();
+  const author = document.getElementById('bookAuthor').value.trim();
+  const copies = Math.max(1, parseInt(document.getElementById('bookCopies').value || '1',10));
+  const shelf = document.getElementById('bookShelf').value.trim() || '—';
+  if(!title){ toast('A title is needed before this book can join the catalog.'); return; }
+
+  books.push({ id:uid(), isbn: isbn || '—', title, author: author || 'Unknown author', cover:'', copies, available:copies, shelf });
+  await saveBooks();
+  ['isbnInput','bookTitle','bookAuthor','bookShelf'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('bookCopies').value = 1;
+  document.getElementById('lookupResult').innerHTML = '';
+  toast(`"${title}" added to the catalog.`);
+  renderAll();
+}
+
+async function removeBook(id){
+  const active = issues.some(i=>i.bookId===id && !i.returnDate);
+  if(active){ toast('Copies of this title are still checked out — return them first.'); return; }
+  books = books.filter(b=>b.id!==id);
+  await saveBooks();
+  renderAll();
+}
+
+function renderCatalog(){
+  const wrap = document.getElementById('catalogTableWrap');
+  if(books.length===0){
+    wrap.innerHTML = `<div class="empty"><div class="display">The shelves are bare</div>Add your first title above by ISBN or by hand.</div>`;
+    return;
+  }
+  wrap.innerHTML = `<table><thead><tr>
+    <th>Title</th><th>Author</th><th>ISBN</th><th>Shelf</th><th>Copies</th><th>Status</th><th></th>
+  </tr></thead><tbody>
+  ${books.map(b=>`
+    <tr>
+      <td><strong>${escapeHtml(b.title)}</strong></td>
+      <td>${escapeHtml(b.author)}</td>
+      <td class="mono">${escapeHtml(b.isbn)}</td>
+      <td>${escapeHtml(b.shelf)}</td>
+      <td class="mono">${b.available} / ${b.copies}</td>
+      <td>${b.available>0 ? '<span class="badge avail">On shelf</span>' : '<span class="badge out">All out</span>'}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="removeBook('${b.id}')">Remove</button></td>
+    </tr>`).join('')}
+  </tbody></table>`;
+}
+
+/* ===================== CIRCULATION ===================== */
+function refreshIssueForm(){
+  const sel = document.getElementById('issueBookSelect');
+  const options = books.filter(b=>b.available>0);
+  sel.innerHTML = options.length
+    ? options.map(b=>`<option value="${b.id}">${escapeHtml(b.title)} — ${b.available} available</option>`).join('')
+    : `<option disabled selected>No copies available right now</option>`;
+  document.getElementById('issueDate').value = todayISO();
+  document.getElementById('dueDate').value = addDays(todayISO(), settings.loanDays);
+}
+
+async function issueBook(){
+  const bookId = document.getElementById('issueBookSelect').value;
+  const book = books.find(b=>b.id===bookId);
+  const memberName = document.getElementById('memberName').value.trim();
+  const memberEmail = document.getElementById('memberEmail').value.trim();
+  const issueDate = document.getElementById('issueDate').value || todayISO();
+  const dueDate = document.getElementById('dueDate').value || addDays(issueDate, settings.loanDays);
+
+  if(!book || book.available<1){ toast('Pick an available book first.'); return; }
+  if(!memberName){ toast('The borrower needs a name on the card.'); return; }
+  if(!memberEmail){ toast('An email is needed to send overdue reminders later.'); return; }
+
+  book.available -= 1;
+  issues.push({ id:uid(), bookId:book.id, title:book.title, author:book.author, memberName, memberEmail, issueDate, dueDate, returnDate:null, fine:0, finePaid:false });
+  await saveBooks(); await saveIssues();
+  document.getElementById('memberName').value=''; document.getElementById('memberEmail').value='';
+  toast(`"${book.title}" issued to ${memberName}, due ${fmtDate(dueDate)}.`);
+  renderAll();
+}
+
+async function returnBook(issueId){
+  const issue = issues.find(i=>i.id===issueId);
+  if(!issue) return;
+  const book = books.find(b=>b.id===issue.bookId);
+  const returnDate = todayISO();
+  const lateDays = Math.max(0, daysBetween(issue.dueDate, returnDate));
+  issue.returnDate = returnDate;
+  issue.fine = +(lateDays * settings.fineRate).toFixed(2);
+  if(book) book.available = Math.min(book.copies, book.available + 1);
+  await saveBooks(); await saveIssues();
+  toast(lateDays>0 ? `Returned — ${lateDays} day(s) late, fine of ${money(issue.fine)}.` : `Returned on time. Nicely done.`);
+  renderAll();
+}
+
+function renderCirculation(){
+  refreshIssueForm();
+  const active = issues.filter(i=>!i.returnDate);
+  const grid = document.getElementById('activeCardGrid');
+  if(active.length===0){
+    grid.innerHTML = `<div class="empty" style="grid-column:1/-1;"><div class="display">The desk is quiet</div>Nothing checked out at the moment.</div>`;
+  }else{
+    grid.innerHTML = active.map(i=>{
+      const isOverdue = new Date(i.dueDate) < new Date(todayISO());
+      const daysLate = isOverdue ? daysBetween(i.dueDate, todayISO()) : 0;
+      return `<div class="stamp-card">
+        <span class="stamp ${isOverdue?'overdue':''}">${isOverdue? (daysLate+'d overdue') : 'on loan'}</span>
+        <p class="title">${escapeHtml(i.title)}</p>
+        <p class="author">${escapeHtml(i.author)}</p>
+        <div class="row"><span>Borrower</span><span>${escapeHtml(i.memberName)}</span></div>
+        <div class="row"><span>Issued</span><span>${fmtDate(i.issueDate)}</span></div>
+        <div class="row"><span>Due</span><span>${fmtDate(i.dueDate)}</span></div>
+        <div class="actions">
+          <button class="btn btn-brass btn-sm" onclick="returnBook('${i.id}')">Mark returned</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  const history = issues.filter(i=>i.returnDate).sort((a,b)=> new Date(b.returnDate)-new Date(a.returnDate));
+  const hwrap = document.getElementById('historyTableWrap');
+  if(history.length===0){
+    hwrap.innerHTML = `<div class="empty"><div class="display">No returns yet</div>Books you check back in will show up here.</div>`;
+  }else{
+    hwrap.innerHTML = `<table><thead><tr><th>Title</th><th>Borrower</th><th>Issued</th><th>Due</th><th>Returned</th><th>Fine</th></tr></thead><tbody>
+      ${history.map(i=>`<tr>
+        <td><strong>${escapeHtml(i.title)}</strong></td>
+        <td>${escapeHtml(i.memberName)}</td>
+        <td>${fmtDate(i.issueDate)}</td>
+        <td>${fmtDate(i.dueDate)}</td>
+        <td>${fmtDate(i.returnDate)}</td>
+        <td class="mono" style="${i.fine>0?'color:var(--rust);font-weight:600;':''}">${i.fine>0?money(i.fine):'—'}</td>
+      </tr>`).join('')}
+    </tbody></table>`;
+  }
+}
+
+/* ===================== DASHBOARD ===================== */
+function renderDashboard(){
+  document.getElementById('dashDate').textContent = new Date().toLocaleDateString('en-IN',{weekday:'long', day:'numeric', month:'long', year:'numeric'});
+  const totalCopies = books.reduce((s,b)=>s+b.copies,0);
+  const availCopies = books.reduce((s,b)=>s+b.available,0);
+  const outCopies = totalCopies - availCopies;
+  const overdue = issues.filter(i=>!i.returnDate && new Date(i.dueDate) < new Date(todayISO())).length;
+
+  document.getElementById('statTotal').textContent = books.length;
+  document.getElementById('statAvail').textContent = availCopies;
+  document.getElementById('statOut').textContent = outCopies;
+  document.getElementById('statOverdue').textContent = overdue;
+
+  const active = issues.filter(i=>!i.returnDate).sort((a,b)=> new Date(a.dueDate)-new Date(b.dueDate));
+  const list = document.getElementById('dashActiveList');
+  if(active.length===0){
+    list.innerHTML = `<div class="empty"><div class="display">Everything's on the shelf</div>No books currently checked out.</div>`;
+  }else{
+    list.innerHTML = `<table><thead><tr><th>Title</th><th>Borrower</th><th>Due</th><th>Status</th></tr></thead><tbody>
+      ${active.slice(0,8).map(i=>{
+        const isOverdue = new Date(i.dueDate) < new Date(todayISO());
+        return `<tr>
+          <td><strong>${escapeHtml(i.title)}</strong></td>
+          <td>${escapeHtml(i.memberName)}</td>
+          <td class="mono">${fmtDate(i.dueDate)}</td>
+          <td>${isOverdue?'<span class="badge out">Overdue</span>':'<span class="badge due">On loan</span>'}</td>
+        </tr>`;
+      }).join('')}
+    </tbody></table>`;
+  }
+}
+
+/* ===================== FINES ===================== */
+async function toggleFinePaid(issueId){
+  const issue = issues.find(i=>i.id===issueId);
+  if(!issue) return;
+  issue.finePaid = !issue.finePaid;
+  await saveIssues();
+  renderAll();
+}
+
+function renderFines(){
+  document.getElementById('fineRateLabel').textContent = money(settings.fineRate);
+  const fined = issues.filter(i=>i.fine>0).sort((a,b)=> new Date(b.returnDate)-new Date(a.returnDate));
+  const outstanding = fined.filter(i=>!i.finePaid).reduce((s,i)=>s+i.fine,0);
+  const paid = fined.filter(i=>i.finePaid).reduce((s,i)=>s+i.fine,0);
+  document.getElementById('fineOutstanding').textContent = money(outstanding);
+  document.getElementById('finePaid').textContent = money(paid);
+  document.getElementById('fineCount').textContent = fined.length;
+
+  const wrap = document.getElementById('fineTableWrap');
+  if(fined.length===0){
+    wrap.innerHTML = `<div class="empty"><div class="display">No fines on record</div>Late returns will appear here once they happen.</div>`;
+  }else{
+    wrap.innerHTML = `<table><thead><tr><th>Title</th><th>Borrower</th><th>Due</th><th>Returned</th><th>Fine</th><th>Status</th><th></th></tr></thead><tbody>
+      ${fined.map(i=>`<tr>
+        <td><strong>${escapeHtml(i.title)}</strong></td>
+        <td>${escapeHtml(i.memberName)}</td>
+        <td>${fmtDate(i.dueDate)}</td>
+        <td>${fmtDate(i.returnDate)}</td>
+        <td class="mono" style="font-weight:600;color:var(--rust);">${money(i.fine)}</td>
+        <td>${i.finePaid?'<span class="badge avail">Paid</span>':'<span class="badge out">Unpaid</span>'}</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="toggleFinePaid('${i.id}')">Mark ${i.finePaid?'unpaid':'paid'}</button></td>
+      </tr>`).join('')}
+    </tbody></table>`;
+  }
+}
+
+/* ===================== ALERTS ===================== */
+function overdueList(){
+  return issues.filter(i=>!i.returnDate && new Date(i.dueDate) < new Date(todayISO()))
+    .sort((a,b)=> new Date(a.dueDate)-new Date(b.dueDate));
+}
+
+function renderAlerts(){
+  const list = overdueList();
+  const wrap = document.getElementById('alertsList');
+  if(list.length===0){
+    wrap.innerHTML = `<div class="empty"><div class="display">No reminders to send</div>Every book on loan is still within its due date.</div>`;
+    return;
+  }
+  wrap.innerHTML = list.map(i=>{
+    const daysLate = daysBetween(i.dueDate, todayISO());
+    const projectedFine = +(daysLate * settings.fineRate).toFixed(2);
+    const subject = encodeURIComponent(`Overdue reminder: "${i.title}" — ${settings.libraryName}`);
+    const body = encodeURIComponent(
+`Dear ${i.memberName},
+
+Our records show "${i.title}" by ${i.author} was due back on ${fmtDate(i.dueDate)} and hasn't yet been returned.
+
+It is currently ${daysLate} day(s) overdue, with a running fine of ${money(projectedFine)} at ${money(settings.fineRate)} per day.
+
+Please return the book at your earliest convenience.
+
+Thank you,
+${settings.libraryName}`);
+    const mailto = `mailto:${encodeURIComponent(i.memberEmail)}?subject=${subject}&body=${body}`;
+    return `<div class="alert-row">
+      <div>
+        <div class="who">${escapeHtml(i.memberName)} — "${escapeHtml(i.title)}"</div>
+        <div class="meta">Due ${fmtDate(i.dueDate)} · ${daysLate} day(s) overdue · ${escapeHtml(i.memberEmail)}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div class="fine-amt">${money(projectedFine)}</div>
+        <a class="btn btn-rust btn-sm" href="${mailto}">Send reminder</a>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function copyOverdueSummary(){
+  const list = overdueList();
+  if(list.length===0){ toast('No overdue books to summarize.'); return; }
+  const text = list.map(i=>{
+    const daysLate = daysBetween(i.dueDate, todayISO());
+    return `${i.memberName} <${i.memberEmail}> — "${i.title}" — due ${fmtDate(i.dueDate)} — ${daysLate}d overdue — ${money(daysLate*settings.fineRate)}`;
+  }).join('\n');
+  navigator.clipboard.writeText(text).then(
+    ()=>toast('Overdue summary copied to clipboard.'),
+    ()=>toast('Could not copy — your browser may be blocking clipboard access.')
+  );
+}
+
+/* ===================== SETTINGS ===================== */
+function renderSettings(){
+  document.getElementById('setLibraryName').value = settings.libraryName;
+  document.getElementById('setFineRate').value = settings.fineRate;
+  document.getElementById('setLoanDays').value = settings.loanDays;
+}
+async function saveSettings(){
+  settings.libraryName = document.getElementById('setLibraryName').value.trim() || settings.libraryName;
+  settings.fineRate = Math.max(0, parseFloat(document.getElementById('setFineRate').value || '0'));
+  settings.loanDays = Math.max(1, parseInt(document.getElementById('setLoanDays').value || '14',10));
+  await saveSettingsState();
+  toast('Settings saved.');
+  renderAll();
+}
+async function resetAll(){
+  if(!confirm('This clears every book, borrower and fine record from this device. Continue?')) return;
+  books = []; issues = [];
+  await saveBooks(); await saveIssues();
+  toast('All records cleared.');
+  renderAll();
+}
+
+/* ===================== UTIL ===================== */
+function escapeHtml(s){
+  return String(s ?? '').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function renderAll(){
+  renderDashboard();
+  renderCatalog();
+  renderCirculation();
+  renderFines();
+  renderAlerts();
+  renderSettings();
+}
+
+/* ===================== INIT ===================== */
+(async function init(){
+  await loadState();
+  renderAll();
+})();
+</script>
+</body>
+</html>
